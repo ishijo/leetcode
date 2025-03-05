@@ -1,0 +1,13 @@
+import pandas as pd
+
+def calculate_special_bonus(employees: pd.DataFrame) -> pd.DataFrame:
+    for i in range(len(employees)):
+        eid = employees.loc[i,'employee_id']
+        ename = employees.loc[i,'name']
+        if eid%2!=0 and ename[0]!='M':
+            employees.at[i,'bonus'] = employees.loc[i,'salary']
+        else:
+            employees.at[i,'bonus'] = 0
+
+    return employees[['employee_id','bonus']].sort_values(by='employee_id')
+    
