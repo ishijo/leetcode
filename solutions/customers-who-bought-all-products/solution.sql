@@ -1,0 +1,2 @@
+# Write your MySQL query statement below
+with cte as (select customer_id, count(distinct product_key) as dist_prods from Customer group by customer_id) select customer_id from cte where cte.dist_prods = (select count(*) from Product)
