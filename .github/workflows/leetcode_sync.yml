@@ -1,0 +1,59 @@
+name: LeetCode Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      full_import:
+        description: "Do a full historical import"
+        type: boolean
+        default: false
+  schedule:
+    # Every day at 03:15 UTC. Adjust as you like.
+    - cron: "15 3 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: leetcode-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history so appends resolve cleanly
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Configure Git identity
+        run: |
+          git config user.name  "${{ secrets.GIT_USER_NAME }}"
+          git config user.email "${{ secrets.GIT_USER_EMAIL }}"
+
+      - name: Run LeetCode sync
+        env:
+          LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
+          LEETCODE_CSRF:    ${{ secrets.LEETCODE_CSRF }}
+          GIT_USER_NAME:    ${{ secrets.GIT_USER_NAME }}
+          GIT_USER_EMAIL:   ${{ secrets.GIT_USER_EMAIL }}
+          FULL_IMPORT:      ${{ github.event.inputs.full_import || 'false' }}
+        run: python scripts/leetcode_sync.py
+
+      - name: Push commits
+        run: |
+          if git log origin/${{ github.ref_name }}..HEAD --oneline | grep -q .; then
+            git push origin HEAD:${{ github.ref_name }}
+          else
+            echo "No new commits to push."
+          fi
